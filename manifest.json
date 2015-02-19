@@ -1,0 +1,48 @@
+{
+    "manifest_version": 2,
+    "name": "__MSG_name__",
+    "description": "__MSG_description__",
+    "author": "__MSG_author__ <me@boonya.info>",
+    "version": "0.1",
+    "default_locale": "en",
+    "icons": {
+        "128": "resources/icons/icon-128.png",
+        "256": "resources/icons/icon-256.png"
+    },
+    "app": {
+        "background": {
+            "scripts": ["background.js"]
+        }
+    },
+    "commands": {
+        "next-track": {
+            "description": "next track",
+            "global": true,
+            "suggested_key": {
+                "default": "MediaNextTrack"
+            }
+        },
+        "play-pause": {
+            "description": "play/pause",
+            "global": true,
+            "suggested_key": {
+                "default": "MediaPlayPause"
+            }
+        },
+        "previous-track": {
+            "description": "previous track",
+            "global": true,
+            "suggested_key": {
+                "default": "MediaPrevTrack"
+            }
+        },
+        "stop": {
+            "description": "stop playback",
+            "global": true,
+            "suggested_key": {
+                "default": "MediaStop"
+            }
+        }
+    },
+    "minimum_chrome_version": "35.0.0.0"
+}

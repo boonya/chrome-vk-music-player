@@ -1,0 +1,14 @@
+{
+    "name": {
+        "message": "Vk Music Player",
+        "description": "Name of application"
+    },
+    "description": {
+        "message": "Music player application for Vkontakte",
+        "description": "Description of application"
+    },
+    "author": {
+        "message": "Sergii boonya Buinytskyi",
+        "description": "Name of author of application"
+    }
+}
