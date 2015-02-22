@@ -1,4 +1,44 @@
 /**
+ * Deferred object.
+ */
+var Deferred = function() {
+  var callbacks = [], errbacks = [], _this = this;
+
+  _this.execute = function (list, args) {
+    list.forEach(function(callback) {
+      callback.apply(_this, args);
+    });
+  };
+
+  _this.resolve = function () {
+    _this.execute(callbacks, arguments);
+  };
+
+  _this.reject = function () {
+    _this.execute(errbacks, arguments);
+  };
+
+  _this.than = function (callback) {
+    if ('function' != typeof callback) return _this;
+    callbacks.push(callback);
+    return _this;
+  };
+
+  _this.catch = function (errback) {
+    if ('function' != typeof errback) return _this;
+    errbacks.push(errback);
+    return _this;
+  };
+
+  return {
+    resolve: _this.resolve,
+    reject: _this.reject,
+    than: _this.than,
+    catch: _this.catch
+  };
+};
+
+/**
  * Vkontakte API.
  */
 var Vk = function() {
@@ -36,11 +76,11 @@ var Vk = function() {
   /**
    * Trying to authenticate user.
    *
-   * @param callback callback
-   * @param callback errback (optional)
+   * @return Deferred
    */
-  _this.auth = function(callback, errback) {
-    var url = 'https://oauth.vk.com/authorize'
+  _this.auth = function() {
+    var d = new Deferred(),
+        url = 'https://oauth.vk.com/authorize'
             + '?client_id=' + vk_config.app_id
             + '&scope=audio'
             + '&redirect_uri=' + chrome.identity.getRedirectURL('')
@@ -63,23 +103,25 @@ var Vk = function() {
 
       if (values['access_token']) {
         _this.setCredentials(values);
-        callback(values);
-      } else if ('function' == typeof errback) {
-        errback(values);
+        d.resolve(values);
+      } else {
+        d.reject(values);
       }
     });
+
+    return d;
   };
 
   /**
    * Calls API method.
    *
-   * @param string    method
-   * @param object    data (Not implemented)
-   * @param callback  callback
-   * @param callback  errback (optional)
+   * @param   string    method
+   * @param   object    data (Not implemented)
+   * @return  Deferred
    */
-  _this.call = function(method, data, callback, errback) {
-    var xhr = new XMLHttpRequest();
+  _this.call = function(method, data) {
+    var d = new Deferred(), xhr = new XMLHttpRequest();
+
     xhr.onreadystatechange = function() {
       var data;
       if (this.readyState !== 4) return;
@@ -90,16 +132,11 @@ var Vk = function() {
       if (!data || !data.response) {
         data = data || {error: {}};
         data.error = data.error || {error_msg: 'Response is invalid.'};
-
-        if ('function' == typeof errback) {
-          errback(data.error);
-        } else {
-          throw new Error(data.error.error_msg);
-        }
-        return;
+        d.reject(data.error);
+        return d;
       }
 
-      callback(data.response);
+      d.resolve(data.response);
     };
     xhr.open("GET",
       "https://api.vk.com/method/" + method
@@ -108,6 +145,8 @@ var Vk = function() {
       true
     );
     xhr.send();
+
+    return d;
   };
 
   return {
@@ -152,15 +191,17 @@ window.onload = function() {
   }
 
   document.getElementById("login-btn").onclick = function() {
-    Vk.auth(UI.hideLogin);
+    Vk.auth().than(UI.hideLogin);
   };
 
   document.getElementById("try-btn").onclick = function() {
-    Vk.call("audio.get", {}, function(data) {
-      console.log("method callback: ", data);
-    }, function(data) {
-      console.log("method errback: ", data);
-    });
+    Vk.call("audio.get")
+      .than(function(data) {
+        console.log("method callback: ", data);
+      })
+      .catch(function (data) {
+        console.log("method errback: ", data);
+      });
   }
 
   document.getElementById("close-window").onclick = function() {
