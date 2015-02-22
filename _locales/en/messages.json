@@ -1,14 +1,13 @@
 {
-    "name": {
-        "message": "Vk Music Player",
-        "description": "Name of application"
-    },
-    "description": {
-        "message": "Music player application for Vkontakte",
-        "description": "Description of application"
-    },
-    "author": {
-        "message": "Sergii boonya Buinytskyi",
-        "description": "Name of author of application"
-    }
+  "name": {
+    "message": "Vk Music Player"
+  },
+  "description": {
+    "message": "Google chorme based application which provides
+                opportunity to listen music from vk.com without opened tab.
+                It supports media keys."
+  },
+  "author": {
+    "message": "Sergii boonya Buinytskyi"
+  }
 }

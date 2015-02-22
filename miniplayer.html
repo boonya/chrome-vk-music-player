@@ -1,16 +1,24 @@
-<!DOCTYPE html>
 <html>
-<head>
-    <title></title>
-</head>
-<style>
-    .mini-player-page {
-        background-color: white;
-        margin: 0px;
-    }
-</style>
-<body class="mini-player-page">
-    <h1>Mini player</h1>
-    <div class="mini-player-container"></div>
-</body>
+  <head>
+    <link href="resources/css/style.css" rel="stylesheet" />
+    <script src="config.json"></script>
+    <script src="resources/js/player.js"></script>
+  </head>
+  <body>
+    <header>
+      <span id="title"></span>
+      <span id="close-window"></span>
+    </header>
+    <section id="login-layout">
+        <p><button id="login-btn">login-btn</button></p>
+    </section>
+    <section id="work-layout">
+        <p><button id="try-btn">try-btn</button></p>
+    </section>
+    <footer>
+      <button id="btn_prev">Prev</button>
+      <button id="btn_play">Play/Pause</button>
+      <button id="btn_next">Next</button>
+    </footer>
+  </body>
 </html>

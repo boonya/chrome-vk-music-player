@@ -6,8 +6,8 @@
     "version": "0.1",
     "default_locale": "en",
     "icons": {
-        "128": "resources/icons/icon-128.png",
-        "256": "resources/icons/icon-256.png"
+        "128": "resources/icons/128.png",
+        "256": "resources/icons/256.png"
     },
     "app": {
         "background": {
@@ -44,5 +44,12 @@
             }
         }
     },
-    "minimum_chrome_version": "35.0.0.0"
+
+    "permissions": [
+        "storage",
+        "identity",
+        "https://*.vk.com/*"
+    ],
+
+    "minimum_chrome_version": "36.0.0.0"
 }

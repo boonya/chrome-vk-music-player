@@ -1,0 +1,35 @@
+body {
+    -webkit-app-region: drag;
+}
+#close-window {
+    -webkit-app-region: no-drag;
+    background: url(../images/close_window.png) no-repeat;
+    width: 24px;
+    height: 24px;
+    display: block;
+    float: right;
+    cursor: pointer;
+}
+#login-layout {
+  display: block;
+}
+#work-layout {
+  display: none;
+}
+
+header, footer {
+  position: absolute;
+  left: 0;
+  height: 50px;
+  background-color: #4d75a3;
+  width: 100%;
+}
+header {
+  top: 0;
+}
+section {
+  margin: 50px 0;
+}
+footer {
+  bottom: 0;
+}
