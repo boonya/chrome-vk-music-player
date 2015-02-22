@@ -2,12 +2,14 @@
  * Deferred object.
  */
 var Deferred = function() {
-  var callbacks = [], errbacks = [], _this = this;
+  var resolved, callbacks = [], errbacks = [], _this = this;
 
   _this.execute = function (list, args) {
+    if (resolved) throw new Error('Deferred object has already been delivered.');
     list.forEach(function(callback) {
       callback.apply(_this, args);
     });
+    resolved = true;
   };
 
   _this.resolve = function () {
@@ -19,22 +21,28 @@ var Deferred = function() {
   };
 
   _this.than = function (callback) {
-    if ('function' != typeof callback) return _this;
+    if ('function' != typeof callback) return _this.promise();
     callbacks.push(callback);
-    return _this;
+    return _this.promise();
   };
 
   _this.catch = function (errback) {
-    if ('function' != typeof errback) return _this;
+    if ('function' != typeof errback) return _this.promise();
     errbacks.push(errback);
-    return _this;
+    return _this.promise();
+  };
+
+  _this.promise = function () {
+    return {
+      than: _this.than,
+      catch: _this.catch
+    }
   };
 
   return {
     resolve: _this.resolve,
     reject: _this.reject,
-    than: _this.than,
-    catch: _this.catch
+    promise: _this.promise
   };
 };
 
@@ -109,7 +117,7 @@ var Vk = function() {
       }
     });
 
-    return d;
+    return d.promise();
   };
 
   /**
@@ -129,14 +137,13 @@ var Vk = function() {
         data = JSON.parse(this.response);
       }
 
-      if (!data || !data.response) {
+      if (data && data.response) {
+        d.resolve(data.response);
+      } else {
         data = data || {error: {}};
         data.error = data.error || {error_msg: 'Response is invalid.'};
         d.reject(data.error);
-        return d;
       }
-
-      d.resolve(data.response);
     };
     xhr.open("GET",
       "https://api.vk.com/method/" + method
@@ -146,7 +153,7 @@ var Vk = function() {
     );
     xhr.send();
 
-    return d;
+    return d.promise();
   };
 
   return {
