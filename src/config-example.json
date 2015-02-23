@@ -1,0 +1,4 @@
+var vk_config = {
+  "app_id": "your-vk-application-id",
+  "api_version": "5.28"
+}
