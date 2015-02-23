@@ -4,16 +4,13 @@ body {
   padding: 0;
 }
 #close-window {
-  background: url(../images/close_window.png) no-repeat;
-  width: 24px;
-  height: 24px;
-  display: block;
   cursor: pointer;
   position: absolute;
   z-index: 3;
-  right: 10px;
-  top: 13px;
+  right: 15px;
+  top: 17px;
 }
+
 #login-layout {
   display: block;
   background-color: #eee;
@@ -38,11 +35,42 @@ body {
   margin-top: -20px;
 }
 
+footer .controls {
+  margin: 8px auto 0 auto;
+}
+
+footer .controls .glyphicon {
+  font-size: 30px;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+#player-wrapper {
+  padding: 5px 10px;
+}
+
+#player-wrapper .track {
+  white-space: nowrap;
+  margin-bottom: 10px;
+}
+
+#player-wrapper .track .play-btn {
+  cursor: pointer;
+  padding: .2em .6em .3em;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: .25em;
+}
+
+#player-wrapper .track .artist {
+  margin-left: 5px
+}
+
 header, footer {
   position: absolute;
   left: 0;
   height: 50px;
-  background-color: #4d75a3;
   width: 100%;
 }
 header {
@@ -53,4 +81,5 @@ section {
 }
 footer {
   bottom: 0;
+  text-align: center;
 }

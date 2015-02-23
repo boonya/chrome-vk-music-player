@@ -189,8 +189,8 @@ var UI = function() {
         tracks = [];
 
     data.items.forEach(function(track) {
-      tracks.push('<div>'
-          + '<button class="btn_play">play</button>'
+      tracks.push('<div class="track">'
+          + '<span class="play-btn bg-Indigo-500 color-white glyphicon glyphicon-play"></span>'
           + '<span class="artist">' + track.artist + '</span>'
           + '<span class="title">' + track.title + '</span>'
           + '<audio>'

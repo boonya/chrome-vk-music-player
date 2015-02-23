@@ -1,26 +1,28 @@
 <html>
   <head>
+    <link href="resources/css/bootstrap.css" rel="stylesheet" />
+    <link href="resources/css/colors.css" rel="stylesheet" />
     <link href="resources/css/style.css" rel="stylesheet" />
     <script src="config.json"></script>
     <script src="resources/js/player.js"></script>
   </head>
   <body>
-    <header>
+    <header class="bg-Indigo-500 color-white">
       <span id="title"></span>
-      <span id="close-window"></span>
+      <span id="close-window" class="glyphicon glyphicon-remove"></span>
     </header>
     <section id="login-layout">
         <button id="login-btn">singn in</button>
     </section>
     <section id="work-layout">
-      <h1>work-layout</h1>
-      <div id="debug-output">...</div>
       <div id="player-wrapper"></div>
     </section>
-    <footer>
-      <button id="btn_prev">Prev</button>
-      <button id="btn_play">Play/Pause</button>
-      <button id="btn_next">Next</button>
+    <footer class="bg-Indigo-500 color-white">
+      <div class="controls">
+        <span id="btn_prev" class="glyphicon glyphicon-backward"></span>
+        <span id="btn_play" class="glyphicon glyphicon-play"></span>
+        <span id="btn_next" class="glyphicon glyphicon-forward"></span>
+      </div>
     </footer>
   </body>
 </html>
