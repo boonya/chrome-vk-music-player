@@ -7,3 +7,4 @@
 5. Individual play control buttons _(play button which placed near track)_.
 6. Volume control inside app window.
 7. RU & UA languages support.
+8. Sync playing with browser tabs.

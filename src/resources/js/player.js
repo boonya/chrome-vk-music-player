@@ -253,49 +253,15 @@ var Player = function() {
   };
 
   _this.setPlayBtn = function(el) {
-    el.onclick = function() {
-      if (!tracks.length) return;
-
-      var audio = tracks[current];
-
-      if (audio.paused) {
-        audio.play();
-      } else {
-        audio.pause();
-      }
-    }
+    el.onclick = _this.playCurrentTrack;
   };
 
   _this.setPrevBtn = function(el) {
-    el.onclick = function() {
-      if (!tracks.length || 1 > current) return;
-
-      var audio = tracks[current];
-      if (!audio.paused) {
-        audio.pause();
-      }
-
-      current--;
-
-      var audio = tracks[current];
-      audio.play();
-    }
+    el.onclick = _this.playPrevTrack;
   };
 
   _this.setNextBtn = function(el) {
-    el.onclick = function() {
-      if (!tracks.length || tracks.length - 1 == current) return;
-
-      var audio = tracks[current];
-      if (!audio.paused) {
-        audio.pause();
-      }
-
-      current++;
-
-      var audio = tracks[current];
-      audio.play();
-    }
+    el.onclick = _this.playNextTrack;
   };
 
   _this.setPlayBtns = function(els) {
@@ -306,12 +272,74 @@ var Player = function() {
     }
   };
 
+  _this.playCurrentTrack = function() {
+    var audio;
+    console.log('_this.playCurrentTrack...');
+    if (!tracks.length) return;
+
+    audio = tracks[current];
+
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+
+    console.log('audio: ', audio);
+    console.log('index: ', current);
+    console.log('paused: ', audio.paused);
+  };
+
+  _this.playPrevTrack = function() {
+    var audio;
+    console.log('_this.playPrevTrack...');
+    if (!tracks.length || 1 > current) return;
+
+    audio = tracks[current];
+
+    if (!audio.paused) {
+      audio.pause();
+    }
+
+    current--;
+
+    audio = tracks[current];
+    audio.play();
+
+    console.log('audio: ', audio);
+    console.log('index: ', current);
+    console.log('paused: ', audio.paused);
+  };
+
+  _this.playNextTrack = function() {
+    var audio;
+    console.log('_this.playNextTrack...');
+    if (!tracks.length || tracks.length - 1 == current) return;
+
+    audio = tracks[current];
+    if (!audio.paused) {
+      audio.pause();
+    }
+
+    current++;
+
+    audio = tracks[current];
+    audio.play();
+
+    console.log('audio: ', audio);
+    console.log('index: ', current);
+    console.log('paused: ', audio.paused);
+  };
+
   return {
     setPlayerWrapper: _this.setPlayerWrapper,
     setPlayBtn: _this.setPlayBtn,
     setPrevBtn: _this.setPrevBtn,
     setNextBtn: _this.setNextBtn,
-    setPlayBtns: _this.setPlayBtns
+    setPlayBtns: _this.setPlayBtns,
+    playCurrentTrack: _this.playCurrentTrack,
+    playPrevTrack: _this.playPrevTrack,
+    playNextTrack: _this.playNextTrack
   };
 };
 
@@ -345,10 +373,39 @@ window.onload = function() {
   }
 
   document.getElementById("login-btn").onclick = function() {
-    Vk.auth().than(ui.hideLogin);
+    Vk.auth().than(function () {
+      ui.hideLogin();
+      Vk.call("audio.get")
+        .than(function(data) {
+          console.log("method callback: ", data);
+          ui.showTracks(data);
+          player.setPlayerWrapper(document.getElementById("player-wrapper"));
+          player.setPlayBtns(document.getElementById("player-wrapper").getElementsByClassName('btn_play'));
+        })
+        .catch(function (data) {
+          console.log("method errback: ", data);
+        });
+    });
   };
 
   document.getElementById("close-window").onclick = function() {
     window.close();
   }
+
+  chrome.commands.onCommand.addListener(function(command) {
+      switch (command) {
+        case 'play-pause':
+          player.playCurrentTrack();
+          break;
+        case 'previous-track':
+          player.playPrevTrack();
+          break;
+        case 'next-track':
+          player.playNextTrack();
+          break;
+        default:
+          throw new Error('Unknown command: ' + command);
+          break;
+      }
+  });
 }
