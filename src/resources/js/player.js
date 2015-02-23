@@ -299,7 +299,6 @@ var Player = function() {
   };
 
   _this.setPlayBtns = function(els) {
-    console.log('els: ', els, els.length);
     for (var i = 0; i < els.length; i++) {
       els[i].onclick = function() {
         console.log('individual play buttons onclick: ', this);
@@ -339,7 +338,6 @@ window.onload = function() {
         ui.showTracks(data);
         player.setPlayerWrapper(document.getElementById("player-wrapper"));
         player.setPlayBtns(document.getElementById("player-wrapper").getElementsByClassName('btn_play'));
-        console.log('player: ', player);
       })
       .catch(function (data) {
         console.log("method errback: ", data);
