@@ -128,7 +128,8 @@ var Vk = function() {
    * @return  Deferred
    */
   _this.call = function(method, data) {
-    var d = new Deferred(), xhr = new XMLHttpRequest();
+    var d = new Deferred(),
+        xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = function() {
       var data;
@@ -167,49 +168,187 @@ var Vk = function() {
  * UI controller.
  */
 var UI = function() {
-  var _this = this;
+  var _this = this,
+      templates = {};
+
+  (function() {
+    document.getElementById("title").innerHTML = chrome.i18n.getMessage("name");
+    document.getElementById("login-btn").innerHTML = chrome.i18n.getMessage("sign_in");
+  })();
 
   _this.showLogin = function() {
     document.getElementById("login-layout").style.display = 'block';
-    document.getElementById("work-layout").style.display = 'none';
   };
 
   _this.hideLogin = function() {
     document.getElementById("login-layout").style.display = 'none';
-    document.getElementById("work-layout").style.display = 'block';
+  };
+
+  _this.showTracks = function(data) {
+    var wrapper = document.getElementById("player-wrapper"),
+        tracks = [];
+
+    data.items.forEach(function(track) {
+      tracks.push('<div>'
+          + '<button class="btn_play">play</button>'
+          + '<span class="artist">' + track.artist + '</span>'
+          + '<span class="title">' + track.title + '</span>'
+          + '<audio>'
+          + '<source src="' + track.url + '" type=\'audio/mpeg; codecs="mp3"\'>'
+          + '</audio>'
+          + '</div>');
+    });
+
+    wrapper.innerHTML = tracks.join("");
+  };
+
+  /**
+   * Returns template.
+   *
+   * @param  string   name
+   * @return Deferred
+   */
+  _this.getTemplate = function(name) {
+    var d = new Deferred(),
+        xhr;
+
+    if (templates[name]) {
+      d.resolve(templates[name]);
+      return d.promise();
+    }
+
+    xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (this.readyState !== 4) return;
+      if (this.status == 200) {
+        templates[name] = this.response;
+        d.resolve(this.response);
+      } else {
+        d.reject(new Error('Template "' + name + '" is not exists.'));
+      }
+    };
+    xhr.open("GET", name, true);
+    xhr.send();
+
+    return d.promise();
   };
 
   return {
     showLogin: _this.showLogin,
-    hideLogin: _this.hideLogin
+    hideLogin: _this.hideLogin,
+    showTracks: _this.showTracks
   };
-}();
+};
+
+/**
+ *
+ */
+var Player = function() {
+  var _this = this,
+      tracks = [],
+      current = 0;
+
+  _this.setPlayerWrapper = function(el) {
+    tracks = el.getElementsByTagName('audio');
+  };
+
+  _this.setPlayBtn = function(el) {
+    el.onclick = function() {
+      if (!tracks.length) return;
+
+      var audio = tracks[current];
+
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    }
+  };
+
+  _this.setPrevBtn = function(el) {
+    el.onclick = function() {
+      if (!tracks.length || 1 > current) return;
+
+      var audio = tracks[current];
+      if (!audio.paused) {
+        audio.pause();
+      }
+
+      current--;
+
+      var audio = tracks[current];
+      audio.play();
+    }
+  };
+
+  _this.setNextBtn = function(el) {
+    el.onclick = function() {
+      if (!tracks.length || tracks.length - 1 == current) return;
+
+      var audio = tracks[current];
+      if (!audio.paused) {
+        audio.pause();
+      }
+
+      current++;
+
+      var audio = tracks[current];
+      audio.play();
+    }
+  };
+
+  _this.setPlayBtns = function(els) {
+    console.log('els: ', els, els.length);
+    for (var i = 0; i < els.length; i++) {
+      els[i].onclick = function() {
+        console.log('individual play buttons onclick: ', this);
+      };
+    }
+  };
+
+  return {
+    setPlayerWrapper: _this.setPlayerWrapper,
+    setPlayBtn: _this.setPlayBtn,
+    setPrevBtn: _this.setPrevBtn,
+    setNextBtn: _this.setNextBtn,
+    setPlayBtns: _this.setPlayBtns
+  };
+};
 
 /**
  *
  */
 window.onload = function() {
-  document.getElementById("title").innerHTML = chrome.i18n.getMessage("name");
+  var ui = new UI();
+
+  var player = new Player();
+  player.setPlayBtn(document.getElementById("btn_play"));
+  player.setPrevBtn(document.getElementById("btn_prev"));
+  player.setNextBtn(document.getElementById("btn_next"));
+
+  var output = document.getElementById("debug-output");
 
   if (!Vk.getCredentials()['access_token']) {
-    UI.showLogin();
+    ui.showLogin();
   } else {
-    UI.hideLogin();
-  }
-
-  document.getElementById("login-btn").onclick = function() {
-    Vk.auth().than(UI.hideLogin);
-  };
-
-  document.getElementById("try-btn").onclick = function() {
+    ui.hideLogin();
     Vk.call("audio.get")
       .than(function(data) {
         console.log("method callback: ", data);
+        ui.showTracks(data);
+        player.setPlayerWrapper(document.getElementById("player-wrapper"));
+        player.setPlayBtns(document.getElementById("player-wrapper").getElementsByClassName('btn_play'));
+        console.log('player: ', player);
       })
       .catch(function (data) {
         console.log("method errback: ", data);
       });
   }
+
+  document.getElementById("login-btn").onclick = function() {
+    Vk.auth().than(ui.hideLogin);
+  };
 
   document.getElementById("close-window").onclick = function() {
     window.close();

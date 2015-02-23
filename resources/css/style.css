@@ -1,20 +1,41 @@
 body {
-    -webkit-app-region: drag;
+  -webkit-app-region: drag;
+  margin: 0;
+  padding: 0;
 }
 #close-window {
-    -webkit-app-region: no-drag;
-    background: url(../images/close_window.png) no-repeat;
-    width: 24px;
-    height: 24px;
-    display: block;
-    float: right;
-    cursor: pointer;
+  background: url(../images/close_window.png) no-repeat;
+  width: 24px;
+  height: 24px;
+  display: block;
+  cursor: pointer;
+  position: absolute;
+  z-index: 3;
+  right: 10px;
+  top: 13px;
 }
 #login-layout {
   display: block;
+  background-color: #eee;
+  height: 100%;
+  position: absolute;
+  width: 100%;
+  top: -50px;
+  left: 0px;
+  z-index: 2;
 }
-#work-layout {
-  display: none;
+
+#login-btn {
+  position: absolute;
+  border: 1px #ccc solid;
+  background-color: #fff;
+  color: #ccc;
+  padding: 3px 5px;
+  top: 50%;
+  left: 50%;
+  margin-left: -40px;
+  font-size: 20px;
+  margin-top: -20px;
 }
 
 header, footer {
