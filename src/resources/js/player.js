@@ -212,22 +212,27 @@ var UserInterface = function() {
     $("#login-layout").hide();
   };
 
-  _this.showTracks = function(data) {
-    var wrapper = document.getElementById("tracks-wrapper"),
-        tracks = [];
+  _this.showTracks = function(wrapper_selector, data) {
+    var tracks = [],
+        wrapper = $(wrapper_selector),
+        d = new Deferred();
 
-    data.items.forEach(function(track, index) {
-      tracks.push('<div class="track">'
-          + '<span class="play-btn bg-Indigo-500 color-white glyphicon glyphicon-play" data-index="' + index + '"></span>'
-          + '<span class="artist">' + track.artist + '</span>'
-          + '<span class="title">' + track.title + '</span>'
-          + '<audio>'
-          + '<source src="' + track.url + '" type=\'audio/mpeg; codecs="mp3"\'>'
-          + '</audio>'
-          + '</div>');
+    _this.getTemplate('resources/html/song-row.html')
+      .then(function(src) {
+        data.items.forEach(function(track, index) {
+          var tpl = _this.compileTemplate(src, {
+            'index': index,
+            'track.artist': track.artist,
+            'track.title': track.title,
+            'track.url': track.url
+          });
+          tracks.push(tpl);
+        });
+        wrapper.html(tracks.join(""));
+        d.resolve();
     });
 
-    wrapper.innerHTML = tracks.join("");
+    return d.promise();
   };
 
   /**
@@ -261,6 +266,13 @@ var UserInterface = function() {
     return d.promise();
   };
 
+  _this.compileTemplate = function(src, data) {
+    return src.replace(/\{{2}([^\{\}\s]+)\}{2}/gi, function(str, name) {
+      if (undefined == data[name]) return '';
+      return data[name];
+    });
+  };
+
   return {
     showLoginScreen: _this.showLoginScreen,
     hideLoginScreen: _this.hideLoginScreen,
@@ -274,10 +286,16 @@ var UserInterface = function() {
 var PlayerApi = function() {
   var _this = this,
       tracks = [],
-      current = 0;
+      current = 0,
+      wrapper;
 
-  _this.setTracksWrapper = function(el) {
-    tracks = el.find('audio');
+  _this.setWrapper = function(selector) {
+    wrapper = $(selector);
+  };
+
+  _this.setTracks = function() {
+    tracks = wrapper.find('audio');
+    console.log('tracks: ', tracks);
   };
 
   _this.setPlayBtn = function(el) {
@@ -292,8 +310,8 @@ var PlayerApi = function() {
     el.click(_this.nextTrack);
   };
 
-  _this.setIndividualPlayBtns = function(els) {
-    els.each(function(index, btn) {
+  _this.setIndividualPlayBtns = function(selector) {
+    wrapper.find(selector).each(function(index, btn) {
       $(btn).click(function() {
         var index = $(this).data('index');
         _this.playTrack(index);
@@ -359,7 +377,8 @@ var PlayerApi = function() {
   };
 
   return {
-    setTracksWrapper: _this.setTracksWrapper,
+    setWrapper: _this.setWrapper,
+    setTracks: _this.setTracks,
     setPlayBtn: _this.setPlayBtn,
     setPrevBtn: _this.setPrevBtn,
     setNextBtn: _this.setNextBtn,
@@ -381,6 +400,8 @@ $(function() {
   Player.setPlayBtn($('#play-btn'));
   Player.setPrevBtn($('#prev-btn'));
   Player.setNextBtn($('#next-btn'));
+  Player.setWrapper('#tracks-wrapper');
+  Player.setIndividualPlayBtns('.play-btn');
 
   var lockPlayer = UI.showLoginScreen;
 
@@ -388,9 +409,8 @@ $(function() {
     UI.hideLoginScreen();
     Vk.call('audio.get')
       .then(function(data) {
-        UI.showTracks(data);
-        Player.setTracksWrapper($('#tracks-wrapper'));
-        Player.setIndividualPlayBtns($('#tracks-wrapper .play-btn'));
+        UI.showTracks('#tracks-wrapper', data)
+          .then(Player.setTracks);
       });
   };
 
@@ -400,7 +420,9 @@ $(function() {
     Vk.auth().then(unlockPlayer).catch(lockPlayer);
   });
 
-  $('#close-app').click(window.close);
+  $('#close-app').click(function() {
+    window.close();
+  });
 
   chrome.commands.onCommand.addListener(function(command) {
       switch (command) {
