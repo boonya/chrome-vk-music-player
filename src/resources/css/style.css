@@ -3,7 +3,7 @@ body {
   margin: 0;
   padding: 0;
 }
-#close-window {
+#close-app {
   cursor: pointer;
   position: absolute;
   z-index: 3;

@@ -405,13 +405,13 @@ $(function() {
   chrome.commands.onCommand.addListener(function(command) {
       switch (command) {
         case 'play-pause':
-          player.playCurrentTrack();
+          Player.playTrack();
           break;
         case 'previous-track':
-          player.playPrevTrack();
+          Player.prevTrack();
           break;
         case 'next-track':
-          player.playNextTrack();
+          Player.nextTrack();
           break;
         default:
           throw new Error('Unknown command: ' + command);
