@@ -4,7 +4,7 @@
 var Promise = function(callbacks, errbacks) {
   var _this = this;
 
-  _this.than = function (callback) {
+  _this.then = function (callback) {
     if ('function' != typeof callback) return _this;
     callbacks.push(callback);
     return _this;
@@ -17,7 +17,7 @@ var Promise = function(callbacks, errbacks) {
   };
 
   return {
-    than: _this.than,
+    then: _this.then,
     catch: _this.catch
   }
 };
@@ -387,17 +387,17 @@ $(function() {
   var unlockPlayer = function() {
     UI.hideLoginScreen();
     Vk.call('audio.get')
-      .than(function(data) {
+      .then(function(data) {
         UI.showTracks(data);
         Player.setTracksWrapper($('#tracks-wrapper'));
         Player.setIndividualPlayBtns($('#tracks-wrapper .play-btn'));
       });
   };
 
-  Vk.getCredentials().than(unlockPlayer).catch(lockPlayer);
+  Vk.getCredentials().then(unlockPlayer).catch(lockPlayer);
 
   $('#login-btn').click(function() {
-    Vk.auth().than(unlockPlayer).catch(lockPlayer);
+    Vk.auth().then(unlockPlayer).catch(lockPlayer);
   });
 
   $('#close-app').click(window.close);
