@@ -45,16 +45,16 @@ footer .controls .glyphicon {
   cursor: pointer;
 }
 
-#player-wrapper {
+#tracks-wrapper {
   padding: 5px 10px;
 }
 
-#player-wrapper .track {
+#tracks-wrapper .track {
   white-space: nowrap;
   margin-bottom: 10px;
 }
 
-#player-wrapper .track .play-btn {
+#tracks-wrapper .track .play-btn {
   cursor: pointer;
   padding: .2em .6em .3em;
   text-align: center;
@@ -63,7 +63,7 @@ footer .controls .glyphicon {
   border-radius: .25em;
 }
 
-#player-wrapper .track .artist {
+#tracks-wrapper .track .artist {
   margin-left: 5px
 }
 

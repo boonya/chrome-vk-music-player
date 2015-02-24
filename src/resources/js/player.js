@@ -1,14 +1,43 @@
 /**
+ * Promise object.
+ */
+var Promise = function(callbacks, errbacks) {
+  var _this = this;
+
+  _this.than = function (callback) {
+    if ('function' != typeof callback) return _this;
+    callbacks.push(callback);
+    return _this;
+  };
+
+  _this.catch = function (errback) {
+    if ('function' != typeof errback) return _this;
+    errbacks.push(errback);
+    return _this;
+  };
+
+  return {
+    than: _this.than,
+    catch: _this.catch
+  }
+};
+
+/**
  * Deferred object.
  */
 var Deferred = function() {
-  var resolved, callbacks = [], errbacks = [], _this = this;
+  var _this = this,
+      resolved = false,
+      callbacks = [],
+      errbacks = [];
 
   _this.execute = function (list, args) {
     if (resolved) throw new Error('Deferred object has already been delivered.');
+
     list.forEach(function(callback) {
       callback.apply(_this, args);
     });
+
     resolved = true;
   };
 
@@ -20,23 +49,8 @@ var Deferred = function() {
     _this.execute(errbacks, arguments);
   };
 
-  _this.than = function (callback) {
-    if ('function' != typeof callback) return _this.promise();
-    callbacks.push(callback);
-    return _this.promise();
-  };
-
-  _this.catch = function (errback) {
-    if ('function' != typeof errback) return _this.promise();
-    errbacks.push(errback);
-    return _this.promise();
-  };
-
   _this.promise = function () {
-    return {
-      than: _this.than,
-      catch: _this.catch
-    }
+    return new Promise(callbacks, errbacks);
   };
 
   return {
@@ -49,25 +63,36 @@ var Deferred = function() {
 /**
  * Vkontakte API.
  */
-var Vk = function() {
-  var credentials, _this = this;
-
-  (function () {
-    credentials = {};
-    chrome.storage.local.get('credentials', function(result) {
-      if (result.credentials.access_token) {
-        credentials = result.credentials;
-      }
-    });
-  })();
+var VkApi = function() {
+  var _this = this,
+      credentials = {};
 
   /**
    * Returns credentials data.
    *
-   * @return object {'access_token': str, 'expires_in': int, 'user_id': int}
+   * @return Promise with object {'access_token': str,
+   *                              'expires_in': int,
+   *                              'user_id': int}
    */
   _this.getCredentials = function() {
-    return credentials;
+    var d = new Deferred();
+
+    if (credentials['access_token']) {
+      d.resolve(credentials);
+      return d.promise();
+    }
+
+    chrome.storage.local.get('credentials', function(result) {
+      if (result['credentials']
+          && result['credentials']['access_token']) {
+        credentials = result.credentials;
+        d.resolve(credentials);
+      } else {
+        d.reject(new Error('Credentials don\'t exist.'));
+      }
+    });
+
+    return d.promise();
   };
 
 
@@ -84,7 +109,7 @@ var Vk = function() {
   /**
    * Trying to authenticate user.
    *
-   * @return Deferred
+   * @return Promise
    */
   _this.auth = function() {
     var d = new Deferred(),
@@ -125,7 +150,7 @@ var Vk = function() {
    *
    * @param   string    method
    * @param   object    data (Not implemented)
-   * @return  Deferred
+   * @return  Promise
    */
   _this.call = function(method, data) {
     var d = new Deferred(),
@@ -138,14 +163,17 @@ var Vk = function() {
         data = JSON.parse(this.response);
       }
 
-      if (data && data.response) {
+      if (data && data['response']) {
         d.resolve(data.response);
+        console.log("VkApi method callback: ", data);
       } else {
         data = data || {error: {}};
-        data.error = data.error || {error_msg: 'Response is invalid.'};
+        data['error'] = data['error'] || {error_msg: 'Response is invalid.'};
         d.reject(data.error);
+        console.log("VkApi method errback: ", data);
       }
     };
+
     xhr.open("GET",
       "https://api.vk.com/method/" + method
       + "?access_token=" + credentials.access_token
@@ -162,35 +190,35 @@ var Vk = function() {
     auth: _this.auth,
     call: _this.call
   };
-}();
+};
 
 /**
  * UI controller.
  */
-var UI = function() {
+var UserInterface = function() {
   var _this = this,
       templates = {};
 
   (function() {
-    document.getElementById("title").innerHTML = chrome.i18n.getMessage("name");
-    document.getElementById("login-btn").innerHTML = chrome.i18n.getMessage("sign_in");
+    $('#title').text(chrome.i18n.getMessage('name'));
+    $('#login-btn').text(chrome.i18n.getMessage('sign_in'));
   })();
 
-  _this.showLogin = function() {
-    document.getElementById("login-layout").style.display = 'block';
+  _this.showLoginScreen = function() {
+    $("#login-layout").show();
   };
 
-  _this.hideLogin = function() {
-    document.getElementById("login-layout").style.display = 'none';
+  _this.hideLoginScreen = function() {
+    $("#login-layout").hide();
   };
 
   _this.showTracks = function(data) {
-    var wrapper = document.getElementById("player-wrapper"),
+    var wrapper = document.getElementById("tracks-wrapper"),
         tracks = [];
 
-    data.items.forEach(function(track) {
+    data.items.forEach(function(track, index) {
       tracks.push('<div class="track">'
-          + '<span class="play-btn bg-Indigo-500 color-white glyphicon glyphicon-play"></span>'
+          + '<span class="play-btn bg-Indigo-500 color-white glyphicon glyphicon-play" data-index="' + index + '"></span>'
           + '<span class="artist">' + track.artist + '</span>'
           + '<span class="title">' + track.title + '</span>'
           + '<audio>'
@@ -234,8 +262,8 @@ var UI = function() {
   };
 
   return {
-    showLogin: _this.showLogin,
-    hideLogin: _this.hideLogin,
+    showLoginScreen: _this.showLoginScreen,
+    hideLoginScreen: _this.hideLoginScreen,
     showTracks: _this.showTracks
   };
 };
@@ -243,39 +271,55 @@ var UI = function() {
 /**
  *
  */
-var Player = function() {
+var PlayerApi = function() {
   var _this = this,
       tracks = [],
       current = 0;
 
-  _this.setPlayerWrapper = function(el) {
-    tracks = el.getElementsByTagName('audio');
+  _this.setTracksWrapper = function(el) {
+    tracks = el.find('audio');
   };
 
   _this.setPlayBtn = function(el) {
-    el.onclick = _this.playCurrentTrack;
+    el.click(function() {_this.playTrack()});
   };
 
   _this.setPrevBtn = function(el) {
-    el.onclick = _this.playPrevTrack;
+    el.click(_this.prevTrack);
   };
 
   _this.setNextBtn = function(el) {
-    el.onclick = _this.playNextTrack;
+    el.click(_this.nextTrack);
   };
 
-  _this.setPlayBtns = function(els) {
-    for (var i = 0; i < els.length; i++) {
-      els[i].onclick = function() {
-        console.log('individual play buttons onclick: ', this);
-      };
-    }
+  _this.setIndividualPlayBtns = function(els) {
+    els.each(function(index, btn) {
+      $(btn).click(function() {
+        var index = $(this).data('index');
+        _this.playTrack(index);
+      });
+    });
   };
 
-  _this.playCurrentTrack = function() {
+  _this.playTrack = function(index) {
     var audio;
-    console.log('_this.playCurrentTrack...');
-    if (!tracks.length) return;
+
+    console.log('_this.playTrack... ', {'current': current, 'index': index});
+
+    if (!tracks.length) {
+      throw new Error('No more tracks.');
+    }
+
+    if (index && !tracks[index]) {
+      throw new Error('Track does not exist.');
+    }
+
+    if (index && index != current) {
+      _this.resetAnotherTracks();
+      current = index;
+    } else {
+      _this.resetAnotherTracks(current);
+    }
 
     audio = tracks[current];
 
@@ -290,107 +334,73 @@ var Player = function() {
     console.log('paused: ', audio.paused);
   };
 
-  _this.playPrevTrack = function() {
-    var audio;
-    console.log('_this.playPrevTrack...');
-    if (!tracks.length || 1 > current) return;
-
-    audio = tracks[current];
-
-    if (!audio.paused) {
-      audio.pause();
-    }
-
-    current--;
-
-    audio = tracks[current];
-    audio.play();
-
-    console.log('audio: ', audio);
-    console.log('index: ', current);
-    console.log('paused: ', audio.paused);
+  _this.resetAnotherTracks = function(index) {
+    $(tracks).each(function(i, track) {
+      if (i == index) return;
+      track.pause();
+      track.currentTime = 0;
+    });
   };
 
-  _this.playNextTrack = function() {
+  _this.prevTrack = function() {
     var audio;
-    console.log('_this.playNextTrack...');
+    console.log('_this.prevTrack...', {'current': current});
+    if (!tracks.length || 1 > current) return;
+
+    _this.playTrack(current - 1);
+  };
+
+  _this.nextTrack = function() {
+    var audio;
+    console.log('_this.nextTrack...', {'current': current});
     if (!tracks.length || tracks.length - 1 == current) return;
 
-    audio = tracks[current];
-    if (!audio.paused) {
-      audio.pause();
-    }
-
-    current++;
-
-    audio = tracks[current];
-    audio.play();
-
-    console.log('audio: ', audio);
-    console.log('index: ', current);
-    console.log('paused: ', audio.paused);
+    _this.playTrack(current + 1);
   };
 
   return {
-    setPlayerWrapper: _this.setPlayerWrapper,
+    setTracksWrapper: _this.setTracksWrapper,
     setPlayBtn: _this.setPlayBtn,
     setPrevBtn: _this.setPrevBtn,
     setNextBtn: _this.setNextBtn,
-    setPlayBtns: _this.setPlayBtns,
-    playCurrentTrack: _this.playCurrentTrack,
-    playPrevTrack: _this.playPrevTrack,
-    playNextTrack: _this.playNextTrack
+    setIndividualPlayBtns: _this.setIndividualPlayBtns,
+    playTrack: _this.playTrack,
+    prevTrack: _this.prevTrack,
+    nextTrack: _this.nextTrack
   };
 };
 
 /**
  *
  */
-window.onload = function() {
-  var ui = new UI();
+$(function() {
+  var Vk = new VkApi();
+  var UI = new UserInterface();
+  var Player = new PlayerApi();
 
-  var player = new Player();
-  player.setPlayBtn(document.getElementById("btn_play"));
-  player.setPrevBtn(document.getElementById("btn_prev"));
-  player.setNextBtn(document.getElementById("btn_next"));
+  Player.setPlayBtn($('#play-btn'));
+  Player.setPrevBtn($('#prev-btn'));
+  Player.setNextBtn($('#next-btn'));
 
-  var output = document.getElementById("debug-output");
+  var lockPlayer = UI.showLoginScreen;
 
-  if (!Vk.getCredentials()['access_token']) {
-    ui.showLogin();
-  } else {
-    ui.hideLogin();
-    Vk.call("audio.get")
+  var unlockPlayer = function() {
+    UI.hideLoginScreen();
+    Vk.call('audio.get')
       .than(function(data) {
-        console.log("method callback: ", data);
-        ui.showTracks(data);
-        player.setPlayerWrapper(document.getElementById("player-wrapper"));
-        player.setPlayBtns(document.getElementById("player-wrapper").getElementsByClassName('btn_play'));
-      })
-      .catch(function (data) {
-        console.log("method errback: ", data);
+        UI.showTracks(data);
+        Player.setTracksWrapper($('#tracks-wrapper'));
+        Player.setIndividualPlayBtns($('#tracks-wrapper .play-btn'));
       });
-  }
-
-  document.getElementById("login-btn").onclick = function() {
-    Vk.auth().than(function () {
-      ui.hideLogin();
-      Vk.call("audio.get")
-        .than(function(data) {
-          console.log("method callback: ", data);
-          ui.showTracks(data);
-          player.setPlayerWrapper(document.getElementById("player-wrapper"));
-          player.setPlayBtns(document.getElementById("player-wrapper").getElementsByClassName('btn_play'));
-        })
-        .catch(function (data) {
-          console.log("method errback: ", data);
-        });
-    });
   };
 
-  document.getElementById("close-window").onclick = function() {
-    window.close();
-  }
+  Vk.getCredentials().than(unlockPlayer).catch(lockPlayer);
+
+  $('#login-btn').click(function() {
+    Vk.auth().than(unlockPlayer).catch(lockPlayer);
+  });
+
+  $('#close-app').click(window.close);
 
   chrome.commands.onCommand.addListener(function(command) {
       switch (command) {
@@ -408,4 +418,4 @@ window.onload = function() {
           break;
       }
   });
-}
+});
