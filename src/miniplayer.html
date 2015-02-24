@@ -4,18 +4,29 @@
     <link href="resources/css/style.css" rel="stylesheet" />
     <script src="config.json"></script>
     <script src="resources/js/jquery.min.js"></script>
+    <script src="resources/js/core.js"></script>
     <script src="resources/js/player.js"></script>
+    <script src="resources/js/vk.js"></script>
+    <script src="resources/js/ui.js"></script>
+    <script src="resources/js/common.js"></script>
   </head>
   <body>
     <header class="bg-Indigo-500 color-white">
       <span id="title"></span>
       <span id="close-app" class="glyphicon glyphicon-remove"></span>
     </header>
+
     <section id="login-layout">
         <button id="login-btn">singn in</button>
     </section>
+
     <section id="tracks-wrapper"></section>
+
     <footer class="bg-Indigo-500 color-white">
+      <div class="progressbar">
+        <div class="preloader"></div>
+        <span class="pointer"></span>
+      </div>
       <div class="controls">
         <span id="prev-btn" class="glyphicon glyphicon-backward"></span>
         <span id="play-btn" class="glyphicon glyphicon-play"></span>

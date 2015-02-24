@@ -1,322 +1,70 @@
 /**
- * Promise object.
- */
-var Promise = function(callbacks, errbacks) {
-  var _this = this;
-
-  _this.then = function (callback) {
-    if ('function' != typeof callback) return _this;
-    callbacks.push(callback);
-    return _this;
-  };
-
-  _this.catch = function (errback) {
-    if ('function' != typeof errback) return _this;
-    errbacks.push(errback);
-    return _this;
-  };
-
-  return {
-    then: _this.then,
-    catch: _this.catch
-  }
-};
-
-/**
- * Deferred object.
- */
-var Deferred = function() {
-  var _this = this,
-      resolved = false,
-      callbacks = [],
-      errbacks = [];
-
-  _this.execute = function (list, args) {
-    if (resolved) throw new Error('Deferred object has already been delivered.');
-
-    list.forEach(function(callback) {
-      callback.apply(_this, args);
-    });
-
-    resolved = true;
-  };
-
-  _this.resolve = function () {
-    _this.execute(callbacks, arguments);
-  };
-
-  _this.reject = function () {
-    _this.execute(errbacks, arguments);
-  };
-
-  _this.promise = function () {
-    return new Promise(callbacks, errbacks);
-  };
-
-  return {
-    resolve: _this.resolve,
-    reject: _this.reject,
-    promise: _this.promise
-  };
-};
-
-/**
- * Vkontakte API.
- */
-var VkApi = function() {
-  var _this = this,
-      credentials = {};
-
-  /**
-   * Returns credentials data.
-   *
-   * @return Promise with object {'access_token': str,
-   *                              'expires_in': int,
-   *                              'user_id': int}
-   */
-  _this.getCredentials = function() {
-    var d = new Deferred();
-
-    if (credentials['access_token']) {
-      d.resolve(credentials);
-      return d.promise();
-    }
-
-    chrome.storage.local.get('credentials', function(result) {
-      if (result['credentials']
-          && result['credentials']['access_token']) {
-        credentials = result.credentials;
-        d.resolve(credentials);
-      } else {
-        d.reject(new Error('Credentials don\'t exist.'));
-      }
-    });
-
-    return d.promise();
-  };
-
-
-  /**
-   * Saves credentials data.
-   *
-   * @param object values {'access_token': str, 'expires_in': int, 'user_id': int}
-   */
-  _this.setCredentials = function(values) {
-    chrome.storage.local.set({'credentials': values});
-    credentials = values;
-  };
-
-  /**
-   * Trying to authenticate user.
-   *
-   * @return Promise
-   */
-  _this.auth = function() {
-    var d = new Deferred(),
-        url = 'https://oauth.vk.com/authorize'
-            + '?client_id=' + vk_config.app_id
-            + '&scope=audio'
-            + '&redirect_uri=' + chrome.identity.getRedirectURL('')
-            + '&display=page'
-            + '&v=' + vk_config.api_version
-            + '&response_type=token';
-
-    chrome.identity.launchWebAuthFlow({
-      'url': url,
-      'interactive': true
-    }, function(responseUrl) {
-      var values = {};
-      var pairs = responseUrl.split('#')[1].split(/&/);
-
-      pairs.forEach(function(pair) {
-        var nameval = pair.split(/=/);
-        if (0 > ['access_token', 'expires_in', 'user_id'].indexOf(nameval[0])) return;
-        values[nameval[0]] = nameval[1];
-      });
-
-      if (values['access_token']) {
-        _this.setCredentials(values);
-        d.resolve(values);
-      } else {
-        d.reject(values);
-      }
-    });
-
-    return d.promise();
-  };
-
-  /**
-   * Calls API method.
-   *
-   * @param   string    method
-   * @param   object    data (Not implemented)
-   * @return  Promise
-   */
-  _this.call = function(method, data) {
-    var d = new Deferred(),
-        xhr = new XMLHttpRequest();
-
-    xhr.onreadystatechange = function() {
-      var data;
-      if (this.readyState !== 4) return;
-      if (this.status == 200) {
-        data = JSON.parse(this.response);
-      }
-
-      if (data && data['response']) {
-        d.resolve(data.response);
-        console.log("VkApi method callback: ", data);
-      } else {
-        data = data || {error: {}};
-        data['error'] = data['error'] || {error_msg: 'Response is invalid.'};
-        d.reject(data.error);
-        console.log("VkApi method errback: ", data);
-      }
-    };
-
-    xhr.open("GET",
-      "https://api.vk.com/method/" + method
-      + "?access_token=" + credentials.access_token
-      + "&v=" + vk_config.api_version,
-      true
-    );
-    xhr.send();
-
-    return d.promise();
-  };
-
-  return {
-    getCredentials: _this.getCredentials,
-    auth: _this.auth,
-    call: _this.call
-  };
-};
-
-/**
- * UI controller.
- */
-var UserInterface = function() {
-  var _this = this,
-      templates = {};
-
-  (function() {
-    $('#title').text(chrome.i18n.getMessage('name'));
-    $('#login-btn').text(chrome.i18n.getMessage('sign_in'));
-  })();
-
-  _this.showLoginScreen = function() {
-    $("#login-layout").show();
-  };
-
-  _this.hideLoginScreen = function() {
-    $("#login-layout").hide();
-  };
-
-  _this.showTracks = function(wrapper_selector, data) {
-    var tracks = [],
-        wrapper = $(wrapper_selector),
-        d = new Deferred();
-
-    _this.getTemplate('resources/html/song-row.html')
-      .then(function(src) {
-        data.items.forEach(function(track, index) {
-          var tpl = _this.compileTemplate(src, {
-            'index': index,
-            'track.artist': track.artist,
-            'track.title': track.title,
-            'track.url': track.url
-          });
-          tracks.push(tpl);
-        });
-        wrapper.html(tracks.join(""));
-        d.resolve();
-    });
-
-    return d.promise();
-  };
-
-  /**
-   * Returns template.
-   *
-   * @param  string   name
-   * @return Deferred
-   */
-  _this.getTemplate = function(name) {
-    var d = new Deferred(),
-        xhr;
-
-    if (templates[name]) {
-      d.resolve(templates[name]);
-      return d.promise();
-    }
-
-    xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (this.readyState !== 4) return;
-      if (this.status == 200) {
-        templates[name] = this.response;
-        d.resolve(this.response);
-      } else {
-        d.reject(new Error('Template "' + name + '" is not exists.'));
-      }
-    };
-    xhr.open("GET", name, true);
-    xhr.send();
-
-    return d.promise();
-  };
-
-  _this.compileTemplate = function(src, data) {
-    return src.replace(/\{{2}([^\{\}\s]+)\}{2}/gi, function(str, name) {
-      if (undefined == data[name]) return '';
-      return data[name];
-    });
-  };
-
-  return {
-    showLoginScreen: _this.showLoginScreen,
-    hideLoginScreen: _this.hideLoginScreen,
-    showTracks: _this.showTracks
-  };
-};
-
-/**
  *
  */
 var PlayerApi = function() {
   var _this = this,
       tracks = [],
       current = 0,
-      wrapper;
+      wrapper,
+      individualPlayBtnSelector,
+      preloader,
+      pointer,
+      progressbar;
 
   _this.setWrapper = function(selector) {
     wrapper = $(selector);
+    return _this;
   };
 
   _this.setTracks = function() {
     tracks = wrapper.find('audio');
-    console.log('tracks: ', tracks);
+    _this.setIndividualPlayBtns();
+    return _this;
   };
 
-  _this.setPlayBtn = function(el) {
-    el.click(function() {_this.playTrack()});
+  _this.setPlayBtn = function(selector) {
+    $(selector).click(function() {_this.playTrack()});
+    return _this;
   };
 
-  _this.setPrevBtn = function(el) {
-    el.click(_this.prevTrack);
+  _this.setPrevBtn = function(selector) {
+    $(selector).click(_this.prevTrack);
+    return _this;
   };
 
-  _this.setNextBtn = function(el) {
-    el.click(_this.nextTrack);
+  _this.setNextBtn = function(selector) {
+    $(selector).click(_this.nextTrack);
+    return _this;
   };
 
-  _this.setIndividualPlayBtns = function(selector) {
-    wrapper.find(selector).each(function(index, btn) {
+  _this.setIndividualPlayBtnSelector = function(selector) {
+    individualPlayBtnSelector = selector;
+    return _this;
+  };
+
+  _this.setPointer = function(selector) {
+    pointer = $(selector);
+    return _this;
+  };
+
+  _this.setPreloader = function(selector) {
+    preloader = $(selector);
+    return _this;
+  };
+
+  _this.setProgressbar = function(selector) {
+    progressbar = $(selector);
+    return _this;
+  };
+
+  _this.setIndividualPlayBtns = function() {
+    $(individualPlayBtnSelector).each(function(index, btn) {
       $(btn).click(function() {
         var index = $(this).data('index');
         _this.playTrack(index);
       });
     });
+    return _this;
   };
 
   _this.playTrack = function(index) {
@@ -341,15 +89,44 @@ var PlayerApi = function() {
 
     audio = tracks[current];
 
+    audio.addEventListener('ended', function(e) {
+      console.log(e.type + 'event: ', e);
+      _this.nextTrack();
+    });
+
+    audio.addEventListener('timeupdate', function() {
+      var percentage = Math.round(this.currentTime/this.duration*100);
+      pointer.css('left', percentage + '%');
+    });
+
+    audio.addEventListener('canplay', function(e) {
+      console.log(e.type + 'event: ', e);
+    });
+
+    audio.addEventListener('canplaythrough', function(e) {
+      console.log(e.type + 'event: ', e);
+    });
+
+    audio.addEventListener('error', function(e) {
+      console.log(e.type + 'event: ', e);
+    });
+
+    audio.addEventListener('progress', function() {
+      if (!this.buffered.length) return;
+      try {
+        var percentage = Math.round(this.buffered.end(.9)/this.duration*100);
+        preloader.css('width', percentage + '%');
+        console.log(this.duration, ' - ', this.buffered.end(.9), ' - ', percentage);
+      } catch (e) {
+        console.log('buffered catched... ', e);
+      };
+    });
+
     if (audio.paused) {
       audio.play();
     } else {
       audio.pause();
     }
-
-    console.log('audio: ', audio);
-    console.log('index: ', current);
-    console.log('paused: ', audio.paused);
   };
 
   _this.resetAnotherTracks = function(index) {
@@ -382,62 +159,12 @@ var PlayerApi = function() {
     setPlayBtn: _this.setPlayBtn,
     setPrevBtn: _this.setPrevBtn,
     setNextBtn: _this.setNextBtn,
-    setIndividualPlayBtns: _this.setIndividualPlayBtns,
+    setIndividualPlayBtnSelector: _this.setIndividualPlayBtnSelector,
+    setPointer: _this.setPointer,
+    setPreloader: _this.setPreloader,
+    setProgressbar: _this.setProgressbar,
     playTrack: _this.playTrack,
     prevTrack: _this.prevTrack,
     nextTrack: _this.nextTrack
   };
 };
-
-/**
- *
- */
-$(function() {
-  var Vk = new VkApi();
-  var UI = new UserInterface();
-  var Player = new PlayerApi();
-
-  Player.setPlayBtn($('#play-btn'));
-  Player.setPrevBtn($('#prev-btn'));
-  Player.setNextBtn($('#next-btn'));
-  Player.setWrapper('#tracks-wrapper');
-  Player.setIndividualPlayBtns('.play-btn');
-
-  var lockPlayer = UI.showLoginScreen;
-
-  var unlockPlayer = function() {
-    UI.hideLoginScreen();
-    Vk.call('audio.get')
-      .then(function(data) {
-        UI.showTracks('#tracks-wrapper', data)
-          .then(Player.setTracks);
-      });
-  };
-
-  Vk.getCredentials().then(unlockPlayer).catch(lockPlayer);
-
-  $('#login-btn').click(function() {
-    Vk.auth().then(unlockPlayer).catch(lockPlayer);
-  });
-
-  $('#close-app').click(function() {
-    window.close();
-  });
-
-  chrome.commands.onCommand.addListener(function(command) {
-      switch (command) {
-        case 'play-pause':
-          Player.playTrack();
-          break;
-        case 'previous-track':
-          Player.prevTrack();
-          break;
-        case 'next-track':
-          Player.nextTrack();
-          break;
-        default:
-          throw new Error('Unknown command: ' + command);
-          break;
-      }
-  });
-});

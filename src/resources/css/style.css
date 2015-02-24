@@ -35,6 +35,32 @@ body {
   margin-top: -20px;
 }
 
+footer .progressbar {
+  width: 100%;
+  border-top: 1px solid gray;
+  height: 5px;
+  margin-top: 10px;
+  position: absolute;
+  bottom: 50px;
+  background-color: yellow;
+}
+
+footer .progressbar .preloader {
+  background-color: silver;
+  height: 5px;
+  width: 0%;
+}
+
+footer .progressbar .pointer {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background-color: red;
+  position: absolute;
+  top: 0;
+  left: 0%;
+}
+
 footer .controls {
   margin: 8px auto 0 auto;
 }
@@ -47,6 +73,9 @@ footer .controls .glyphicon {
 
 #tracks-wrapper {
   padding: 5px 10px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 284px;
 }
 
 #tracks-wrapper .track {
