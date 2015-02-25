@@ -3,6 +3,7 @@ body {
   margin: 0;
   padding: 0;
 }
+
 #close-app {
   cursor: pointer;
   position: absolute;
@@ -112,6 +113,10 @@ footer {
   bottom: 0;
   text-align: center;
 }
+
+/** Colors **/
+.bg-indigo-500 { background-color: #3f51b5; }
+.color-white { color: #ffffff; }
 
 /** Icons **/
 @font-face {
