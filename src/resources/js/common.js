@@ -3,30 +3,27 @@
  */
 $(function() {
   var Vk = new VkApi();
-  var UI = new UserInterface();
   var Player = new PlayerApi();
-
-  Player.setWrapper('#tracks-wrapper')
-    .setPlayBtn('#play-btn')
-    .setPrevBtn('#prev-btn')
-    .setNextBtn('#next-btn')
-    .setIndividualPlayBtnSelector('#tracks-wrapper .play-btn')
-    .setProgressbar('footer .progressbar')
-    .setPointer('footer .progressbar .pointer')
-    .setPreloader('footer .progressbar .preloader');
-
-  var lockPlayer = UI.showLoginScreen;
+  var UI = new UserInterface();
 
   var unlockPlayer = function() {
     UI.hideLoginScreen();
+
     Vk.call('audio.get')
       .then(function(data) {
-        UI.showTracks('#tracks-wrapper', data)
-          .then(Player.setTracks);
+        Player.setTracks(data.items);
+        UI.showTracks('#tracks-wrapper', data.items)
+          .then(function() {
+            $('#tracks-wrapper .play-btn').click(function() {
+              Player.play($(this).data('index'));
+            });
+          });
       });
   };
 
-  Vk.getCredentials().then(unlockPlayer).catch(lockPlayer);
+  Vk.isAuth()
+    .then(unlockPlayer)
+    .catch(UI.showLoginScreen);
 
   $('#login-btn').click(function() {
     Vk.auth().then(unlockPlayer).catch(lockPlayer);
@@ -36,16 +33,41 @@ $(function() {
     window.close();
   });
 
+  Player.onEvent('ended', Player.next);
+
+  Player.onEvent('pause', function(index, track, e) {
+    UI.setPlayingStatus(e.type, index);
+  });
+
+  Player.onEvent('play', function(index, track, e) {
+    UI.setPlayingStatus(e.type, index);
+  });
+
+  Player.onEvent('progress', function() {
+    UI.setPreloader('.progressbar .preloader', Player.getLoadProgress());
+  });
+
+  Player.onEvent('timeupdate', function() {
+    UI.setTimePointer('.progressbar .pointer', Player.getPlayProgress());
+  });
+
+  $('#play-btn').click(Player.play);
+  $('#prev-btn').click(Player.prev);
+  $('#next-btn').click(Player.next);
+
+  $('#title').text(chrome.i18n.getMessage('name'));
+  $('#login-btn').text(chrome.i18n.getMessage('sign_in'));
+
   chrome.commands.onCommand.addListener(function(command) {
       switch (command) {
         case 'play-pause':
-          Player.playTrack();
+          Player.play();
           break;
         case 'previous-track':
-          Player.prevTrack();
+          Player.prev();
           break;
         case 'next-track':
-          Player.nextTrack();
+          Player.next();
           break;
         default:
           throw new Error('Unknown command: ' + command);

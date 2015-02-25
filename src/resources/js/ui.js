@@ -5,11 +5,6 @@ var UserInterface = function() {
   var _this = this,
       templates = {};
 
-  (function() {
-    $('#title').text(chrome.i18n.getMessage('name'));
-    $('#login-btn').text(chrome.i18n.getMessage('sign_in'));
-  })();
-
   _this.showLoginScreen = function() {
     $("#login-layout").show();
   };
@@ -18,14 +13,14 @@ var UserInterface = function() {
     $("#login-layout").hide();
   };
 
-  _this.showTracks = function(wrapper_selector, data) {
+  _this.showTracks = function(selector, items) {
     var tracks = [],
-        wrapper = $(wrapper_selector),
+        wrapper = $(selector),
         d = new Deferred();
 
     _this.getTemplate('resources/html/song-row.html')
       .then(function(src) {
-        data.items.forEach(function(track, index) {
+        items.forEach(function(track, index) {
           var tpl = _this.compileTemplate(src, {
             'index': index,
             'track.artist': track.artist,
@@ -34,11 +29,52 @@ var UserInterface = function() {
           });
           tracks.push(tpl);
         });
-        wrapper.html(tracks.join(""));
+        wrapper.html(tracks.join(''));
         d.resolve();
     });
 
     return d.promise();
+  };
+
+  _this.setPreloader = function(selector, value) {
+    $(selector).css('width', value + '%');
+  };
+
+  _this.setTimePointer = function(selector, value) {
+    $(selector).css('left', value + '%');
+  };
+
+  _this.setPlayingStatus = function(status, index) {
+    var btnSet = $('#tracks-wrapper .play-btn');
+    var globalBtn = $('#play-btn');
+    var button = $(btnSet[index]);
+
+    switch (status) {
+      case 'play':
+        btnSet
+          .removeClass('glyphicon-pause')
+          .addClass('glyphicon-play');
+
+        globalBtn
+          .removeClass('glyphicon-play')
+          .addClass('glyphicon-pause');
+
+        button
+          .removeClass('glyphicon-play')
+          .addClass('glyphicon-pause');
+        break;
+      case 'pause':
+        globalBtn
+          .removeClass('glyphicon-pause')
+          .addClass('glyphicon-play');
+
+        button
+          .removeClass('glyphicon-pause')
+          .addClass('glyphicon-play');
+        break;
+    }
+
+    return _this;
   };
 
   /**
@@ -82,6 +118,9 @@ var UserInterface = function() {
   return {
     showLoginScreen: _this.showLoginScreen,
     hideLoginScreen: _this.hideLoginScreen,
-    showTracks: _this.showTracks
+    showTracks: _this.showTracks,
+    setPreloader: _this.setPreloader,
+    setTimePointer: _this.setTimePointer,
+    setPlayingStatus: _this.setPlayingStatus
   };
 };

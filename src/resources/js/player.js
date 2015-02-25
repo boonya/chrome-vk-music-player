@@ -5,166 +5,153 @@ var PlayerApi = function() {
   var _this = this,
       tracks = [],
       current = 0,
-      wrapper,
-      individualPlayBtnSelector,
-      preloader,
-      pointer,
-      progressbar;
+      audio,
+      callbacks = [],
+      supportedEvents;
 
-  _this.setWrapper = function(selector) {
-    wrapper = $(selector);
+  supportedEvents = ['progress', 'timeupdate', 'ended', 'pause', 'play',
+    'playing', 'suspend', 'volumechange', 'waiting', 'loadstart', 'error'];
+
+  /**
+   *
+   *
+   * return _this
+   */
+  _this.setTracks = function(data) {
+    tracks = data;
     return _this;
   };
 
-  _this.setTracks = function() {
-    tracks = wrapper.find('audio');
-    _this.setIndividualPlayBtns();
-    return _this;
-  };
-
-  _this.setPlayBtn = function(selector) {
-    $(selector).click(function() {_this.playTrack()});
-    return _this;
-  };
-
-  _this.setPrevBtn = function(selector) {
-    $(selector).click(_this.prevTrack);
-    return _this;
-  };
-
-  _this.setNextBtn = function(selector) {
-    $(selector).click(_this.nextTrack);
-    return _this;
-  };
-
-  _this.setIndividualPlayBtnSelector = function(selector) {
-    individualPlayBtnSelector = selector;
-    return _this;
-  };
-
-  _this.setPointer = function(selector) {
-    pointer = $(selector);
-    return _this;
-  };
-
-  _this.setPreloader = function(selector) {
-    preloader = $(selector);
-    return _this;
-  };
-
-  _this.setProgressbar = function(selector) {
-    progressbar = $(selector);
-    return _this;
-  };
-
-  _this.setIndividualPlayBtns = function() {
-    $(individualPlayBtnSelector).each(function(index, btn) {
-      $(btn).click(function() {
-        var index = $(this).data('index');
-        _this.playTrack(index);
-      });
-    });
-    return _this;
-  };
-
-  _this.playTrack = function(index) {
-    var audio;
-
-    console.log('_this.playTrack... ', {'current': current, 'index': index});
-
+  /**
+   * Play or pause track.
+   *
+   * return _this
+   * throws Error when have no tracks.
+   * throws Error when passed index for not existing track.
+   */
+  _this.play = function(index) {
     if (!tracks.length) {
       throw new Error('No more tracks.');
     }
 
-    if (index && !tracks[index]) {
-      throw new Error('Track does not exist.');
+    if (index % 1 === 0) {
+      if (tracks[index]) {
+        current = index;
+      } else {
+        throw new Error('Track does not exist.');
+      }
     }
 
-    if (index && index != current) {
-      _this.resetAnotherTracks();
-      current = index;
-    } else {
-      _this.resetAnotherTracks(current);
+    var track = tracks[current];
+
+    if (!audio) {
+      audio = document.createElement('audio');
+
+      supportedEvents.forEach(function(event) {
+        audio.addEventListener(event, _this.executeCallbacks);
+      });
     }
 
-    audio = tracks[current];
-
-    audio.addEventListener('ended', function(e) {
-      console.log(e.type + 'event: ', e);
-      _this.nextTrack();
-    });
-
-    audio.addEventListener('timeupdate', function() {
-      var percentage = Math.round(this.currentTime/this.duration*100);
-      pointer.css('left', percentage + '%');
-    });
-
-    audio.addEventListener('canplay', function(e) {
-      console.log(e.type + 'event: ', e);
-    });
-
-    audio.addEventListener('canplaythrough', function(e) {
-      console.log(e.type + 'event: ', e);
-    });
-
-    audio.addEventListener('error', function(e) {
-      console.log(e.type + 'event: ', e);
-    });
-
-    audio.addEventListener('progress', function() {
-      if (!this.buffered.length) return;
-      try {
-        var percentage = Math.round(this.buffered.end(.9)/this.duration*100);
-        preloader.css('width', percentage + '%');
-        console.log(this.duration, ' - ', this.buffered.end(.9), ' - ', percentage);
-      } catch (e) {
-        console.log('buffered catched... ', e);
-      };
-    });
+    if (audio.src != track.url) {
+      audio.src = track.url;
+    }
 
     if (audio.paused) {
       audio.play();
     } else {
       audio.pause();
     }
+
+    return _this;
   };
 
-  _this.resetAnotherTracks = function(index) {
-    $(tracks).each(function(i, track) {
-      if (i == index) return;
-      track.pause();
-      track.currentTime = 0;
+  _this.prev = function() {
+    _this.play(current-1);
+    return _this;
+  };
+
+  _this.next = function() {
+    _this.play(current+1);
+    return _this;
+  };
+
+  /**
+   * Retruns playing proggress in percents.
+   *
+   * return integer
+   */
+  _this.getPlayProgress = function() {
+    var percentage = Math.round(audio.currentTime/audio.duration*100);
+    if (percentage % 1 !== 0) return 0;
+    return percentage;
+  };
+
+  /**
+   * Retruns loading proggress in percents.
+   *
+   * return integer
+   */
+  _this.getLoadProgress = function() {
+    var percentage = 0;
+    if (!audio.buffered.length) return percentage;
+    try {
+      percentage = Math.round(audio.buffered.end(.9)/audio.duration*100);
+    } catch(e) {};
+    if (percentage % 1 !== 0) return 0;
+    return percentage;
+  };
+
+  /**
+   * Retruns duration of current track.
+   *
+   * return float
+   */
+  _this.getDuration = function() {
+    return audio.duration;
+  };
+
+  /**
+   * Set callbacks on different events.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Media_events
+   *
+   * return _this
+   * throws Error when first argument is not supported event type.
+   * throws Error when second argument is not a function.
+   */
+  _this.onEvent = function(eventType, callback) {
+    if (supportedEvents.indexOf(eventType) < 0) {
+      throw new Error('Passed event type does not support: ' + eventType);
+    }
+
+    if ('function' != typeof callback) {
+      throw new Error('Argument is not a function: ' + callback);
+    }
+
+    callbacks[eventType] = callbacks[eventType] || [];
+    callbacks[eventType].push(callback);
+
+    return _this;
+  };
+
+  /**
+   * Executes all callbacks which have been assigned to the specified event.
+   */
+  _this.executeCallbacks = function(e) {
+    if (!callbacks[e.type]) return;
+    callbacks[e.type].forEach(function(callback) {
+      callback.apply(_this, [current, tracks[current], e]);
     });
   };
 
-  _this.prevTrack = function() {
-    var audio;
-    console.log('_this.prevTrack...', {'current': current});
-    if (!tracks.length || 1 > current) return;
-
-    _this.playTrack(current - 1);
-  };
-
-  _this.nextTrack = function() {
-    var audio;
-    console.log('_this.nextTrack...', {'current': current});
-    if (!tracks.length || tracks.length - 1 == current) return;
-
-    _this.playTrack(current + 1);
-  };
-
   return {
-    setWrapper: _this.setWrapper,
     setTracks: _this.setTracks,
-    setPlayBtn: _this.setPlayBtn,
-    setPrevBtn: _this.setPrevBtn,
-    setNextBtn: _this.setNextBtn,
-    setIndividualPlayBtnSelector: _this.setIndividualPlayBtnSelector,
-    setPointer: _this.setPointer,
-    setPreloader: _this.setPreloader,
-    setProgressbar: _this.setProgressbar,
-    playTrack: _this.playTrack,
-    prevTrack: _this.prevTrack,
-    nextTrack: _this.nextTrack
+    play: _this.play,
+    prev: _this.prev,
+    next: _this.next,
+    onEvent: _this.onEvent,
+    getPlayProgress: _this.getPlayProgress,
+    getLoadProgress: _this.getLoadProgress,
+    getDuration: _this.getDuration
   };
 };

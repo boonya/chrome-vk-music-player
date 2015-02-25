@@ -6,13 +6,11 @@ var VkApi = function() {
       credentials = {};
 
   /**
-   * Returns credentials data.
+   * Checks whether the user is authorized.
    *
-   * @return Promise with object {'access_token': str,
-   *                              'expires_in': int,
-   *                              'user_id': int}
+   * @return Promise
    */
-  _this.getCredentials = function() {
+  _this.isAuth = function() {
     var d = new Deferred();
 
     if (credentials['access_token']) {
@@ -24,7 +22,7 @@ var VkApi = function() {
       if (result['credentials']
           && result['credentials']['access_token']) {
         credentials = result.credentials;
-        d.resolve(credentials);
+        d.resolve();
       } else {
         d.reject(new Error('Credentials don\'t exist.'));
       }
@@ -124,7 +122,7 @@ var VkApi = function() {
   };
 
   return {
-    getCredentials: _this.getCredentials,
+    isAuth: _this.isAuth,
     auth: _this.auth,
     call: _this.call
   };
