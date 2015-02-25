@@ -4,7 +4,8 @@ Google Chorme based application which provides opportunity to listen music from 
 **It supports media keys.**
 
 # How to install
-0. Firstly you need to [download application package](dist/vk-music-player.crx).
+0. Firstly you need to [download application package](raw/master/dist/vk-music-player.crx).
+
 0. After this you should type [chrome://extensions/](chrome://extensions/) within your address bar. It will open list of currently installed extensions on your chrome.
 0. Drag and drop previously downloaded file to this window.
 
