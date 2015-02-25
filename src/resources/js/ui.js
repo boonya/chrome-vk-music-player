@@ -23,9 +23,11 @@ var UserInterface = function() {
         items.forEach(function(track, index) {
           var tpl = _this.compileTemplate(src, {
             'index': index,
+            'track': track,
             'track.artist': track.artist,
             'track.title': track.title,
-            'track.url': track.url
+            'track.url': track.url,
+            'track.duration': _this.formatTime(track.duration)
           });
           tracks.push(tpl);
         });
@@ -77,6 +79,48 @@ var UserInterface = function() {
     return _this;
   };
 
+  _this.setCurrentTrack = function(index) {
+    var btnSet = $('#tracks-wrapper .track');
+    var button = $(btnSet[index]);
+    btnSet.removeClass('active');
+    button.addClass('active');
+  };
+
+  _this.formatTime = function(input) {
+    var seconds,
+        minutes,
+        hours,
+        array = [],
+        format;
+
+    format = function(int) {
+      var string = int.toString();
+      if (string.length < 2) {
+        return '0' + string;
+      }
+      return string;
+    }
+
+    minutes = Math.floor(input/60);
+    seconds = Math.floor(input-minutes*60);
+
+    if (minutes > 59) {
+      hours = Math.floor(minutes/60);
+      minutes = Math.floor(minutes-hours*60);
+      array.push(hours);
+    }
+
+    if (hours || minutes) {
+      if (hours) array.push(format(minutes));
+      else array.push(minutes);
+    }
+
+    if (minutes) array.push(format(seconds));
+    else array.push(seconds);
+
+    return array.join(':');
+  };
+
   /**
    * Returns template.
    *
@@ -110,7 +154,7 @@ var UserInterface = function() {
 
   _this.compileTemplate = function(src, data) {
     return src.replace(/\{{2}([^\{\}\s]+)\}{2}/gi, function(str, name) {
-      if (undefined == data[name]) return '';
+      if (undefined == data[name]) return name;
       return data[name];
     });
   };
@@ -121,6 +165,7 @@ var UserInterface = function() {
     showTracks: _this.showTracks,
     setPreloader: _this.setPreloader,
     setTimePointer: _this.setTimePointer,
-    setPlayingStatus: _this.setPlayingStatus
+    setPlayingStatus: _this.setPlayingStatus,
+    setCurrentTrack: _this.setCurrentTrack
   };
 };

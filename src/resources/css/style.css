@@ -73,7 +73,6 @@ footer .controls .glyphicon {
 }
 
 #tracks-wrapper {
-  padding: 5px 10px;
   overflow-y: scroll;
   overflow-x: hidden;
   height: 284px;
@@ -81,20 +80,57 @@ footer .controls .glyphicon {
 
 #tracks-wrapper .track {
   white-space: nowrap;
-  margin-bottom: 10px;
+  border-bottom: 1px solid gray;
+  padding: 5px;
+  position: relative;
 }
 
-#tracks-wrapper .track .play-btn {
+#tracks-wrapper .track:nth-child(even),
+#tracks-wrapper .track:nth-child(even) > .duration {
+  background-color: #E3F2FD
+}
+
+#tracks-wrapper .track:nth-child(odd),
+#tracks-wrapper .track:nth-child(odd) > .duration {
+  background-color: #BBDEFB
+}
+
+#tracks-wrapper .track.active,
+#tracks-wrapper .track.active > .duration {
+  background-color: #D1C4E9
+}
+
+#tracks-wrapper .track > .play-btn {
   cursor: pointer;
   padding: .2em .6em .3em;
   text-align: center;
   white-space: nowrap;
-  vertical-align: baseline;
+  vertical-align: top;
   border-radius: .25em;
+  margin-top: 5px;
 }
 
-#tracks-wrapper .track .artist {
-  margin-left: 5px
+#tracks-wrapper .track > .title {
+  margin-left: 5px;
+  display: inline-block;
+}
+
+#tracks-wrapper .track > .title > .artist {
+  margin: 0;
+  font-weight: bold;
+}
+
+#tracks-wrapper .track > .title > .title {
+  margin: 0;
+}
+
+#tracks-wrapper .track > .duration {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  height: 100%;
+  padding: 0 5px;
+  line-height: 3.4;
 }
 
 header, footer {

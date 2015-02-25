@@ -36,11 +36,12 @@ $(function() {
   Player.onEvent('ended', Player.next);
 
   Player.onEvent('pause', function(index, track, e) {
-    UI.setPlayingStatus(e.type, index);
+    UI.setPlayingStatus('pause', index);
   });
 
   Player.onEvent('play', function(index, track, e) {
-    UI.setPlayingStatus(e.type, index);
+    UI.setPlayingStatus('play', index);
+    UI.setCurrentTrack(index);
   });
 
   Player.onEvent('progress', function() {
